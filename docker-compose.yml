@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  onlyusers-db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: onlyusers-db
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Password_123456!
+    ports:
+      - "14333:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql/data
+    networks:
+      - onlyusers-net
+
+  onlyusers-api:
+    image: onlyusers-api:latest
+    build:
+      context: .
+      dockerfile: OnlyUsersService.API/Dockerfile
+    container_name: onlyusers-api
+    depends_on:
+      - onlyusers-db
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Server=onlyusers-db,1433;Database=OnlyUsersService_DB;User Id=sa;Password=Password_123456!;TrustServerCertificate=True;MultipleActiveResultSets=True
+      - SecuritySettings__JwtSecretKey=OnlyUsersService_Secret_Key_Super_Secure_2026_JWT_Token_Generator_Key!#$
+      - SecuritySettings__JwtIssuer=OnlyUsersService
+      - SecuritySettings__JwtAudience=OnlyUsersService.Client
+    ports:
+      - "5200:8080"
+    networks:
+      - onlyusers-net
+
+volumes:
+  mssql-data:
+
+networks:
+  onlyusers-net:
+    driver: bridge

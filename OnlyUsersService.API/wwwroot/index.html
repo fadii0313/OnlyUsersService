@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OnlyUsersService | Full-Stack Microservice</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-light: #e0e7ff;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--surface-border);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand { display: flex; align-items: center; gap: 0.75rem; font-size: 1.25rem; font-weight: 700; color: #fff; }
+    .brand i { color: var(--primary); font-size: 1.5rem; }
+    .badge { padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+    .badge-success { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-admin { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    .header-actions { display: flex; align-items: center; gap: 1rem; }
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius);
+      border: none;
+      font-weight: 500;
+      font-size: 0.875rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .btn-secondary { background: var(--surface-border); color: var(--text); }
+    .btn-secondary:hover { background: #475569; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-outline { background: transparent; border: 1px solid var(--surface-border); color: var(--text); }
+    .btn-outline:hover { background: var(--surface-border); }
+
+    .container { max-width: 1280px; margin: 0 auto; padding: 2rem; width: 100%; flex: 1; }
+
+    .nav-tabs {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--surface-border);
+      margin-bottom: 2rem;
+    }
+    .tab-btn {
+      padding: 0.75rem 1.25rem;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.35rem; font-weight: 500; }
+    .form-control {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      background: #0f172a;
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 0.9rem;
+      transition: border-color 0.2s ease;
+    }
+    .form-control:focus { outline: none; border-color: var(--primary); }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th { text-align: left; padding: 0.75rem 1rem; background: #0f172a; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px solid var(--surface-border); }
+    td { padding: 0.85rem 1rem; border-bottom: 1px solid var(--surface-border); font-size: 0.875rem; vertical-align: middle; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+    .action-btns { display: flex; gap: 0.5rem; }
+    .action-btn { background: var(--surface-border); border: none; padding: 0.35rem 0.65rem; border-radius: 6px; color: var(--text); cursor: pointer; font-size: 0.8rem; }
+    .action-btn:hover { background: var(--primary); }
+    .action-btn.btn-del:hover { background: var(--danger); }
+
+    .token-box {
+      background: #0f172a;
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      font-family: monospace;
+      font-size: 0.8rem;
+      word-break: break-all;
+      max-height: 120px;
+      overflow-y: auto;
+      margin-top: 0.5rem;
+    }
+
+    .alert { padding: 0.85rem 1rem; border-radius: var(--radius); font-size: 0.875rem; margin-bottom: 1rem; display: none; }
+    .alert-success { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; }
+    .alert-danger { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none; align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <i class="fa-solid fa-users-gear"></i>
+      <span>OnlyUsersService</span>
+      <span class="badge badge-success"><i class="fa-solid fa-circle" style="font-size: 6px;"></i> EF Core Microservice</span>
+    </div>
+    <div class="header-actions">
+      <div id="userBadge" style="display: none; align-items: center; gap: 0.5rem;">
+        <span class="badge badge-admin" id="sessionRole">Admin</span>
+        <span id="sessionUsername" style="font-size: 0.9rem; font-weight: 600;">admin</span>
+        <button class="btn btn-outline" onclick="logout()" title="Logout"><i class="fa-solid fa-right-from-bracket"></i></button>
+      </div>
+      <a href="/swagger" target="_blank" class="btn btn-primary">
+        <i class="fa-solid fa-file-code"></i> Swagger Documentation
+      </a>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('overview')"><i class="fa-solid fa-chart-pie"></i> Overview</button>
+      <button class="tab-btn" onclick="switchTab('auth')"><i class="fa-solid fa-key"></i> Authentication</button>
+      <button class="tab-btn" onclick="switchTab('profile')"><i class="fa-solid fa-id-badge"></i> My Profile</button>
+      <button class="tab-btn" onclick="switchTab('users')"><i class="fa-solid fa-users"></i> Users Directory</button>
+      <button class="tab-btn" onclick="switchTab('roles')"><i class="fa-solid fa-shield-halved"></i> Role Management</button>
+    </div>
+
+    <!-- OVERVIEW TAB -->
+    <div id="tab-overview" class="tab-content active">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><i class="fa-solid fa-circle-info" style="color: var(--primary);"></i> Service Architecture</div>
+          <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; margin-bottom: 1rem;">
+            <strong>OnlyUsersService</strong> is a decoupled .NET 8 microservice replicating the CMS.UserManagement structure with Entity Framework Core, SQL Server ORM, JWT Bearer authentication, and Swagger OpenAPI testing.
+          </p>
+          <ul style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.8; padding-left: 1.25rem;">
+            <li><strong>Solution:</strong> OnlyUsersService.sln</li>
+            <li><strong>Web API Project:</strong> OnlyUsersService.API</li>
+            <li><strong>Database:</strong> OnlyUsersService_DB (SQL Server / LocalDB)</li>
+            <li><strong>ORM:</strong> Entity Framework Core 8 with Migrations</li>
+            <li><strong>Authentication:</strong> HMAC-SHA256 JWT with Claims & Role Authorization</li>
+            <li><strong>Password Hashing:</strong> BCrypt encryption</li>
+            <li><strong>Service URL:</strong> <a href="/swagger" style="color: var(--primary); text-decoration: none;">http://localhost:5200/swagger</a></li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><i class="fa-solid fa-database" style="color: var(--success);"></i> Pre-seeded Test Accounts</div>
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+            The database automatically created tables and seeded these ready-to-test accounts on startup:
+          </p>
+          <table style="margin-top: 0;">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Password</th>
+                <th>Role</th>
+                <th>Quick Login</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>admin</code></td>
+                <td><code>Admin@123456</code></td>
+                <td><span class="badge badge-admin">Admin</span></td>
+                <td><button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="quickLogin('admin', 'Admin@123456')">Log In</button></td>
+              </tr>
+              <tr>
+                <td><code>john_doe</code></td>
+                <td><code>User@123456</code></td>
+                <td><span class="badge badge-success">User</span></td>
+                <td><button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="quickLogin('john_doe', 'User@123456')">Log In</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-bolt" style="color: var(--warning);"></i> Active JWT Session</div>
+        <div id="sessionStatus" style="font-size: 0.9rem; color: var(--text-muted);">
+          No active session. Please log in using the Authentication tab or Swagger.
+        </div>
+        <div id="jwtTokenDisplay" class="token-box" style="display: none;"></div>
+      </div>
+    </div>
+
+    <!-- AUTHENTICATION TAB -->
+    <div id="tab-auth" class="tab-content">
+      <div class="grid-2">
+        <!-- LOGIN CARD -->
+        <div class="card">
+          <div class="card-title"><i class="fa-solid fa-right-to-bracket" style="color: var(--primary);"></i> User Login (/api/users/login)</div>
+          <div id="loginAlert" class="alert"></div>
+          <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="form-group">
+              <label>Username or Email</label>
+              <input type="text" id="loginUsername" class="form-control" required placeholder="admin or john_doe" value="admin">
+            </div>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" id="loginPassword" class="form-control" required placeholder="Admin@123456" value="Admin@123456">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+              <i class="fa-solid fa-key"></i> Authenticate & Generate JWT
+            </button>
+          </form>
+        </div>
+
+        <!-- REGISTRATION CARD -->
+        <div class="card">
+          <div class="card-title"><i class="fa-solid fa-user-plus" style="color: var(--success);"></i> Register User (/api/users/register)</div>
+          <div id="registerAlert" class="alert"></div>
+          <form id="registerForm" onsubmit="handleRegister(event)">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="regUsername" class="form-control" required placeholder="alice_smith">
+              </div>
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="regEmail" class="form-control" required placeholder="alice@example.com">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>First Name</label>
+                <input type="text" id="regFirstName" class="form-control" required placeholder="Alice">
+              </div>
+              <div class="form-group">
+                <label>Last Name</label>
+                <input type="text" id="regLastName" class="form-control" required placeholder="Smith">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="regPassword" class="form-control" required placeholder="Min. 6 chars">
+              </div>
+              <div class="form-group">
+                <label>Department</label>
+                <input type="text" id="regDepartment" class="form-control" placeholder="Finance">
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+              <i class="fa-solid fa-user-check"></i> Register Account
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE TAB -->
+    <div id="tab-profile" class="tab-content">
+      <div class="card" style="max-width: 700px; margin: 0 auto;">
+        <div class="card-title"><i class="fa-solid fa-id-badge" style="color: var(--primary);"></i> My Profile (/api/users/profile)</div>
+        <div id="profileAlert" class="alert"></div>
+        <form id="profileForm" onsubmit="handleUpdateProfile(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label>First Name</label>
+              <input type="text" id="profFirstName" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label>Last Name</label>
+              <input type="text" id="profLastName" class="form-control" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Phone Number</label>
+              <input type="text" id="profPhone" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Department</label>
+              <input type="text" id="profDept" class="form-control">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Designation / Title</label>
+              <input type="text" id="profDesignation" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>City & Country</label>
+              <input type="text" id="profCity" class="form-control" placeholder="City, Country">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Bio</label>
+            <textarea id="profBio" class="form-control" rows="3"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-floppy-disk"></i> Save Profile Changes
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- USERS DIRECTORY TAB -->
+    <div id="tab-users" class="tab-content">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+          <div class="card-title" style="margin-bottom: 0;">
+            <i class="fa-solid fa-users" style="color: var(--primary);"></i> User Management Directory (/api/users)
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="text" id="userSearchTerm" class="form-control" style="width: 250px;" placeholder="Search users..." onkeyup="if(event.key==='Enter') loadUsers()">
+            <button class="btn btn-secondary" onclick="loadUsers()"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+            <button class="btn btn-primary" onclick="openCreateUserModal()"><i class="fa-solid fa-plus"></i> New User</button>
+          </div>
+        </div>
+        <div id="userTableAlert" class="alert"></div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Full Name</th>
+                <th>Roles</th>
+                <th>Status</th>
+                <th>Created At</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody">
+              <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Please log in to load users.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROLES TAB -->
+    <div id="tab-roles" class="tab-content">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i> System Roles (/api/users/roles)</div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Role Name</th>
+                <th>Description</th>
+                <th>User Count</th>
+              </tr>
+            </thead>
+            <tbody id="rolesTableBody">
+              <tr><td colspan="4" style="text-align: center;">Loading system roles...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><i class="fa-solid fa-user-shield" style="color: var(--success);"></i> Role Assignment Tool</div>
+          <div id="roleAssignAlert" class="alert"></div>
+          <form onsubmit="handleAssignRole(event)">
+            <div class="form-group">
+              <label>Target User ID</label>
+              <input type="number" id="roleUserId" class="form-control" required placeholder="e.g. 2">
+            </div>
+            <div class="form-group">
+              <label>Select Role(s)</label>
+              <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem;">
+                <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: var(--text);">
+                  <input type="checkbox" id="roleCheckAdmin" value="Admin"> Admin
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: var(--text);">
+                  <input type="checkbox" id="roleCheckUser" value="User" checked> User
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: var(--text-muted);">
+                <input type="checkbox" id="replaceExistingRoles" checked> Replace existing assigned roles
+              </label>
+            </div>
+            <button type="submit" class="btn btn-primary">
+              <i class="fa-solid fa-arrows-rotate"></i> Update Role Assignment
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create User Modal -->
+  <div id="createUserModal" class="modal-overlay">
+    <div class="modal">
+      <div class="card-title" style="justify-content: space-between;">
+        <span><i class="fa-solid fa-user-plus"></i> Add New User</span>
+        <button class="action-btn" onclick="closeCreateUserModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="modalAlert" class="alert"></div>
+      <form onsubmit="handleAdminCreateUser(event)">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="modalUsername" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="modalEmail" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="modalPassword" class="form-control" required minlength="6">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" id="modalFirstName" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" id="modalLastName" class="form-control" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <select id="modalRole" class="form-control">
+            <option value="User">User</option>
+            <option value="Admin">Admin</option>
+          </select>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem;">
+          <button type="button" class="btn btn-secondary" onclick="closeCreateUserModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let authToken = localStorage.getItem('onlyusers_token') || '';
+    let currentUser = JSON.parse(localStorage.getItem('onlyusers_user') || 'null');
+
+    function updateSessionUI() {
+      if (authToken && currentUser) {
+        document.getElementById('userBadge').style.display = 'flex';
+        document.getElementById('sessionUsername').innerText = currentUser.username;
+        document.getElementById('sessionRole').innerText = (currentUser.roles && currentUser.roles[0]) || 'User';
+        document.getElementById('sessionStatus').innerHTML = `
+          <span style="color: #34d399;"><i class="fa-solid fa-circle-check"></i> Authenticated as <strong>${currentUser.username}</strong></span>
+          <span class="badge badge-admin" style="margin-left: 0.5rem;">${currentUser.roles.join(', ')}</span>
+        `;
+        document.getElementById('jwtTokenDisplay').style.display = 'block';
+        document.getElementById('jwtTokenDisplay').innerText = authToken;
+      } else {
+        document.getElementById('userBadge').style.display = 'none';
+        document.getElementById('sessionStatus').innerHTML = 'No active session. Please log in using the Authentication tab or Swagger.';
+        document.getElementById('jwtTokenDisplay').style.display = 'none';
+      }
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      const targetBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.innerText.toLowerCase().includes(tabId));
+      if (targetBtn) targetBtn.classList.add('active');
+      const targetContent = document.getElementById('tab-' + tabId);
+      if (targetContent) targetContent.classList.add('active');
+
+      if (tabId === 'users') loadUsers();
+      if (tabId === 'profile') loadProfile();
+      if (tabId === 'roles') loadRoles();
+    }
+
+    async function apiCall(endpoint, method = 'GET', body = null) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (authToken) headers['Authorization'] = 'Bearer ' + authToken;
+
+      const opts = { method, headers };
+      if (body) opts.body = JSON.stringify(body);
+
+      const res = await fetch(endpoint, opts);
+      const data = await res.json().catch(() => null);
+      return { status: res.status, data };
+    }
+
+    async function quickLogin(username, password) {
+      document.getElementById('loginUsername').value = username;
+      document.getElementById('loginPassword').value = password;
+      switchTab('auth');
+      await handleLogin(new Event('submit'));
+    }
+
+    async function handleLogin(e) {
+      if (e) e.preventDefault();
+      const alertBox = document.getElementById('loginAlert');
+      alertBox.style.display = 'none';
+
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value;
+
+      try {
+        const { status, data } = await apiCall('/api/users/login', 'POST', { username, password });
+        if (data && data.success && data.data && data.data.token) {
+          authToken = data.data.token;
+          currentUser = {
+            id: data.data.userId,
+            username: data.data.username,
+            email: data.data.email,
+            roles: data.data.roles
+          };
+          localStorage.setItem('onlyusers_token', authToken);
+          localStorage.setItem('onlyusers_user', JSON.stringify(currentUser));
+          updateSessionUI();
+
+          alertBox.className = 'alert alert-success';
+          alertBox.innerText = `Login successful! Welcome back, ${currentUser.username}.`;
+          alertBox.style.display = 'block';
+
+          setTimeout(() => switchTab('users'), 800);
+        } else {
+          alertBox.className = 'alert alert-danger';
+          alertBox.innerText = (data && data.responseMessage) || 'Invalid login credentials.';
+          alertBox.style.display = 'block';
+        }
+      } catch (err) {
+        alertBox.className = 'alert alert-danger';
+        alertBox.innerText = 'Network error during login.';
+        alertBox.style.display = 'block';
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const alertBox = document.getElementById('registerAlert');
+      alertBox.style.display = 'none';
+
+      const payload = {
+        username: document.getElementById('regUsername').value.trim(),
+        email: document.getElementById('regEmail').value.trim(),
+        password: document.getElementById('regPassword').value,
+        firstName: document.getElementById('regFirstName').value.trim(),
+        lastName: document.getElementById('regLastName').value.trim(),
+        department: document.getElementById('regDepartment').value.trim()
+      };
+
+      const { status, data } = await apiCall('/api/users/register', 'POST', payload);
+      if (data && data.success) {
+        alertBox.className = 'alert alert-success';
+        alertBox.innerText = 'Registration successful! You can now log in.';
+        alertBox.style.display = 'block';
+        document.getElementById('registerForm').reset();
+      } else {
+        alertBox.className = 'alert alert-danger';
+        alertBox.innerText = (data && data.responseMessage) || 'Registration failed.';
+        alertBox.style.display = 'block';
+      }
+    }
+
+    async function loadProfile() {
+      if (!authToken) {
+        document.getElementById('profileAlert').className = 'alert alert-danger';
+        document.getElementById('profileAlert').innerText = 'Please log in first to view profile.';
+        document.getElementById('profileAlert').style.display = 'block';
+        return;
+      }
+
+      const { status, data } = await apiCall('/api/users/profile');
+      if (data && data.success && data.data) {
+        const u = data.data;
+        document.getElementById('profFirstName').value = u.firstName || '';
+        document.getElementById('profLastName').value = u.lastName || '';
+        document.getElementById('profPhone').value = u.phoneNumber || '';
+        if (u.profile) {
+          document.getElementById('profDept').value = u.profile.department || '';
+          document.getElementById('profDesignation').value = u.profile.designation || '';
+          document.getElementById('profCity').value = (u.profile.city ? u.profile.city + ', ' : '') + (u.profile.country || '');
+          document.getElementById('profBio').value = u.profile.bio || '';
+        }
+      }
+    }
+
+    async function handleUpdateProfile(e) {
+      e.preventDefault();
+      const alertBox = document.getElementById('profileAlert');
+      alertBox.style.display = 'none';
+
+      const cityParts = document.getElementById('profCity').value.split(',');
+      const payload = {
+        firstName: document.getElementById('profFirstName').value.trim(),
+        lastName: document.getElementById('profLastName').value.trim(),
+        phoneNumber: document.getElementById('profPhone').value.trim(),
+        department: document.getElementById('profDept').value.trim(),
+        designation: document.getElementById('profDesignation').value.trim(),
+        city: cityParts[0] ? cityParts[0].trim() : '',
+        country: cityParts[1] ? cityParts[1].trim() : '',
+        bio: document.getElementById('profBio').value.trim()
+      };
+
+      const { status, data } = await apiCall('/api/users/profile', 'PUT', payload);
+      if (data && data.success) {
+        alertBox.className = 'alert alert-success';
+        alertBox.innerText = 'Profile updated successfully.';
+        alertBox.style.display = 'block';
+      } else {
+        alertBox.className = 'alert alert-danger';
+        alertBox.innerText = (data && data.responseMessage) || 'Failed to update profile.';
+        alertBox.style.display = 'block';
+      }
+    }
+
+    async function loadUsers() {
+      const tbody = document.getElementById('usersTableBody');
+      const searchTerm = document.getElementById('userSearchTerm')?.value || '';
+      const url = '/api/users?pageNumber=1&pageSize=50' + (searchTerm ? '&searchTerm=' + encodeURIComponent(searchTerm) : '');
+
+      const { status, data } = await apiCall(url);
+      if (status === 401 || status === 403) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #f87171;">Authorization required. Only Administrators can view the user directory. Please log in as admin.</td></tr>`;
+        return;
+      }
+
+      if (data && data.success && data.data && data.data.users) {
+        const users = data.data.users;
+        if (users.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">No users found.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = users.map(u => `
+          <tr>
+            <td><strong>#${u.id}</strong></td>
+            <td><code>${u.username}</code></td>
+            <td>${u.email}</td>
+            <td>${u.fullName}</td>
+            <td>${u.roles.map(r => `<span class="badge ${r === 'Admin' ? 'badge-admin' : 'badge-success'}">${r}</span>`).join(' ')}</td>
+            <td>${u.isActive ? '<span style="color: #34d399;">Active</span>' : '<span style="color: #f87171;">Inactive</span>'}</td>
+            <td>${new Date(u.createdAt).toLocaleDateString()}</td>
+            <td>
+              <div class="action-btns">
+                <button class="action-btn" onclick="prepareAssignRole(${u.id}, '${u.roles.join(',')}')" title="Assign Role"><i class="fa-solid fa-shield"></i></button>
+                <button class="action-btn btn-del" onclick="deleteUser(${u.id}, '${u.username}')" title="Delete User"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    async function deleteUser(id, username) {
+      if (!confirm(`Are you sure you want to delete user '${username}' (ID: ${id})?`)) return;
+      const { status, data } = await apiCall(`/api/users/${id}`, 'DELETE');
+      if (data && data.success) {
+        alert('User deleted successfully.');
+        loadUsers();
+      } else {
+        alert((data && data.responseMessage) || 'Failed to delete user.');
+      }
+    }
+
+    async function loadRoles() {
+      const tbody = document.getElementById('rolesTableBody');
+      const { status, data } = await apiCall('/api/users/roles');
+      if (data && data.success && Array.isArray(data.data)) {
+        tbody.innerHTML = data.data.map(r => `
+          <tr>
+            <td><strong>#${r.id}</strong></td>
+            <td><span class="badge ${r.name === 'Admin' ? 'badge-admin' : 'badge-success'}">${r.name}</span></td>
+            <td>${r.description || ''}</td>
+            <td><strong>${r.userCount}</strong> assigned</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    function prepareAssignRole(userId, roles) {
+      switchTab('roles');
+      document.getElementById('roleUserId').value = userId;
+      document.getElementById('roleCheckAdmin').checked = roles.includes('Admin');
+      document.getElementById('roleCheckUser').checked = roles.includes('User');
+    }
+
+    async function handleAssignRole(e) {
+      e.preventDefault();
+      const alertBox = document.getElementById('roleAssignAlert');
+      alertBox.style.display = 'none';
+
+      const userId = parseInt(document.getElementById('roleUserId').value, 10);
+      const roles = [];
+      if (document.getElementById('roleCheckAdmin').checked) roles.push('Admin');
+      if (document.getElementById('roleCheckUser').checked) roles.push('User');
+
+      const payload = {
+        userId: userId,
+        roles: roles,
+        replaceExisting: document.getElementById('replaceExistingRoles').checked
+      };
+
+      const { status, data } = await apiCall('/api/users/roles', 'POST', payload);
+      if (data && data.success) {
+        alertBox.className = 'alert alert-success';
+        alertBox.innerText = `Roles updated successfully for User #${userId}.`;
+        alertBox.style.display = 'block';
+        loadRoles();
+      } else {
+        alertBox.className = 'alert alert-danger';
+        alertBox.innerText = (data && data.responseMessage) || 'Failed to assign roles.';
+        alertBox.style.display = 'block';
+      }
+    }
+
+    function openCreateUserModal() {
+      document.getElementById('createUserModal').style.display = 'flex';
+    }
+    function closeCreateUserModal() {
+      document.getElementById('createUserModal').style.display = 'none';
+    }
+
+    async function handleAdminCreateUser(e) {
+      e.preventDefault();
+      const payload = {
+        username: document.getElementById('modalUsername').value.trim(),
+        email: document.getElementById('modalEmail').value.trim(),
+        password: document.getElementById('modalPassword').value,
+        firstName: document.getElementById('modalFirstName').value.trim(),
+        lastName: document.getElementById('modalLastName').value.trim(),
+        roles: [document.getElementById('modalRole').value]
+      };
+
+      const { status, data } = await apiCall('/api/users', 'POST', payload);
+      if (data && data.success) {
+        closeCreateUserModal();
+        alert('User created successfully.');
+        loadUsers();
+      } else {
+        alert((data && data.responseMessage) || 'Failed to create user.');
+      }
+    }
+
+    function logout() {
+      authToken = '';
+      currentUser = null;
+      localStorage.removeItem('onlyusers_token');
+      localStorage.removeItem('onlyusers_user');
+      updateSessionUI();
+      switchTab('overview');
+    }
+
+    // Initialize UI on load
+    updateSessionUI();
+    loadRoles();
+  </script>
+</body>
+</html>
