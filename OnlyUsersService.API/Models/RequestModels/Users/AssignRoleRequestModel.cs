@@ -8,9 +8,11 @@ namespace OnlyUsersService.API.Models.RequestModels.Users
         /// <summary>
         /// Optional target UserId. If omitted, defaults to currently authenticated user context.
         /// </summary>
+        [Range(1, long.MaxValue, ErrorMessage = "UserId must be a positive integer.")]
         public long? UserId { get; set; }
 
         [Required(ErrorMessage = "At least one role must be specified.")]
+        [MinLength(1, ErrorMessage = "At least one role must be specified.")]
         public List<string> Roles { get; set; } = new List<string>();
 
         /// <summary>
@@ -20,3 +22,4 @@ namespace OnlyUsersService.API.Models.RequestModels.Users
         public bool ReplaceExisting { get; set; } = true;
     }
 }
+

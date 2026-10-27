@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
@@ -177,9 +178,9 @@ namespace OnlyUsersService.API.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> GetAllUsers(
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10,
-            [FromQuery] string searchTerm = null)
+            [FromQuery, Range(1, int.MaxValue, ErrorMessage = "Page number must be at least 1.")] int pageNumber = 1,
+            [FromQuery, Range(1, 100, ErrorMessage = "Page size must be between 1 and 100.")] int pageSize = 10,
+            [FromQuery, StringLength(100, ErrorMessage = "Search term cannot exceed 100 characters.")] string searchTerm = null)
         {
             var result = await _userService.GetAllAsync(pageNumber, pageSize, searchTerm);
             return HandleResult(result);
@@ -215,7 +216,8 @@ namespace OnlyUsersService.API.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetUserById([FromRoute] long id)
+        public async Task<IActionResult> GetUserById(
+            [FromRoute, Range(1, long.MaxValue, ErrorMessage = "User ID must be greater than zero.")] long id)
         {
             long currentUserId = _currentUserContext.UserId;
             bool isAdmin = _currentUserContext.IsInRole(AppRoles.Admin);
@@ -246,7 +248,9 @@ namespace OnlyUsersService.API.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> UpdateUser([FromRoute] long id, [FromBody] UpdateUserRequestModel request)
+        public async Task<IActionResult> UpdateUser(
+            [FromRoute, Range(1, long.MaxValue, ErrorMessage = "User ID must be greater than zero.")] long id,
+            [FromBody] UpdateUserRequestModel request)
         {
             long currentUserId = _currentUserContext.UserId;
             bool isAdmin = _currentUserContext.IsInRole(AppRoles.Admin);
@@ -283,7 +287,8 @@ namespace OnlyUsersService.API.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> DeleteUser([FromRoute] long id)
+        public async Task<IActionResult> DeleteUser(
+            [FromRoute, Range(1, long.MaxValue, ErrorMessage = "User ID must be greater than zero.")] long id)
         {
             long currentUserId = _currentUserContext.UserId;
             if (currentUserId == id)
@@ -327,7 +332,8 @@ namespace OnlyUsersService.API.Controllers
         [SwaggerOperation(Summary = "Get Roles", Description = "Gets system roles, or user-assigned roles. If userId parameter is omitted, defaults to authenticated user context without passing any parameters.")]
         [ProducesResponseType(typeof(BaseResponseModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> GetRoles([FromQuery] long? userId = null)
+        public async Task<IActionResult> GetRoles(
+            [FromQuery, Range(1, long.MaxValue, ErrorMessage = "User ID must be greater than zero.")] long? userId = null)
         {
             bool isAdmin = _currentUserContext.IsInRole(AppRoles.Admin);
             long targetId = userId.HasValue && userId.Value > 0 ? userId.Value : (!isAdmin ? _currentUserContext.UserId : 0);
@@ -384,7 +390,9 @@ namespace OnlyUsersService.API.Controllers
         [ProducesResponseType(typeof(BaseResponseModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        public async Task<IActionResult> RemoveRoles([FromQuery] List<string> roles, [FromQuery] long? userId = null)
+        public async Task<IActionResult> RemoveRoles(
+            [FromQuery, Required(ErrorMessage = "At least one role must be specified.")] List<string> roles,
+            [FromQuery, Range(1, long.MaxValue, ErrorMessage = "User ID must be greater than zero.")] long? userId = null)
         {
             long targetId = (userId.HasValue && userId.Value > 0) ? userId.Value : _currentUserContext.UserId;
             var result = await _userService.RemoveRolesAsync(targetId, roles);

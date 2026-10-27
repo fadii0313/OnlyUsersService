@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +20,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using OnlyUsersService.API.Common;
 using OnlyUsersService.API.Data;
+using OnlyUsersService.API.Models.ResponseModels.BaseModels;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace OnlyUsersService.API
@@ -65,6 +67,31 @@ namespace OnlyUsersService.API
                 jsonOptions.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
                 jsonOptions.JsonSerializerOptions.WriteIndented = true;
             });
+
+            // Standardize model validation error responses with BaseResponseModel
+            services.Configure<ApiBehaviorOptions>(options =>
+            {
+                options.InvalidModelStateResponseFactory = context =>
+                {
+                    var response = new BaseResponseModel(false)
+                    {
+                        ResponseCode = ApiResponseCode.Validation,
+                        ResponseMessage = "One or more validation errors occurred."
+                    };
+
+                    foreach (var keyState in context.ModelState)
+                    {
+                        foreach (var error in keyState.Value.Errors)
+                        {
+                            var errorMessage = string.IsNullOrWhiteSpace(error.ErrorMessage) ? "Invalid field value." : error.ErrorMessage;
+                            response.AddError(errorMessage, keyState.Key);
+                        }
+                    }
+
+                    return new BadRequestObjectResult(response);
+                };
+            });
+
 
             // Endpoint route path in lower case
             services.AddRouting(options =>
